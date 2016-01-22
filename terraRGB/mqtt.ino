@@ -56,7 +56,7 @@ void myDataCb(String& topic, String& data) {
 }
 
 String getPath(String actor) {
-  String path ="/";
+  String path = "/";
   path += CLIENT_ID;
   path += "/" + actor;
   return path;

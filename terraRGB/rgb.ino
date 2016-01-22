@@ -1,7 +1,7 @@
 void updateLED() {
   switch (LED_mode) {
     case DIMM:
-      if(millis()-LED_timer > LED_speed) dimm();
+      if (millis() - LED_timer > LED_speed) dimm();
       break;
     default:
     case INSTANT:
