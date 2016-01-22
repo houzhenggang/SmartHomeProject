@@ -1,17 +1,24 @@
-/**********q******************************
+/****************************************
+ *
+ *
+ *        terraRGB
+ *          the standard Sketch for
  *
  *
  *
  *
- *
- *
- *
- *
- */#include <ESP8266WiFi.h>
+ */
+#include <FS.h>                   //this needs to be first, or it all crashes and burns... - Not Shure why it's needed
+#include <ESP8266WiFi.h>          //https://github.com/esp8266/Arduino
 #include <MQTT.h>
+//for FileSystem
+#include <DNSServer.h>
+#include <ESP8266WebServer.h>
 
+#include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager
+#include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
 
-#define CLIENT_ID "WzRGB"
+#define CLIENT_ID "terraRGB"
 #define DIMM 0
 #define INSTANT 1
 #define FLASH 2
@@ -19,41 +26,99 @@
 #define SAWTOOTH 4
 #define PULSE 5
 
-// create MQTT object, Enter Your MQTT-Server Data here:
-MQTT myMqtt(CLIENT_ID, "192.168.1.1", 1883);
 
-// Enter your Wifi Settings here:
-const char* ssid     = "SSID";
-const char* password = "Wifi pass";
+
+// Standard values for the MQTT config mode
+const char *mqtt_server = "test.mosquitto.net";
+const char *mqtt_port = "1883";
+const char *mqtt_clientid = "ESPtest";
+
+// create MQTT object
+//MQTT myMqtt(mqtt_server, mqtt_server, 1883);
+MQTT myMqtt(CLIENT_ID, "192.168.4.4", 1883);
+
+
+//flag for saving data
+bool shouldSaveConfig = false;
+
+//callback notifying us of the need to save config
+void saveConfigCallback () {
+  Serial.println("Should save config");
+  shouldSaveConfig = true;
+}
 
 boolean bIsConnected = false;
 
 byte LED_mode = DIMM;
 int LED_speed = 0;
-int LED_pin[] = {4, 16, 5};
+int LED_pin[] = {12, 14, 16};
 int LED_step = 0;
 double LED_timer;
 byte LED_out[] = {0, 0, 0};
 byte LED_val[] = {0, 0, 0};
 
+int BTN_pin = 5;
+
 //
 void setup() {
-  Serial.begin(115200);
-  delay(1000);
-
-  Serial.println();
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-
-  WiFi.begin(ssid, password);
-
+  pinMode(BTN_pin, INPUT_PULLUP);
+  // Configure the RGB PWM Output
   for (int i = 0; i < 3; i++) {
     pinMode(LED_pin[i], OUTPUT);
   }
   analogWriteRange(100);
-  
 
+  Serial.begin(115200);
+  delay(1000);
+
+  Serial.println("Booting ESP8266");
+  Serial.print("ChipID: ");
+  Serial.println(ESP.getChipId());
+  Serial.print("FlashChipID: ");
+  Serial.println(ESP.getFlashChipId());
+  Serial.print("Flash Speed: ");
+  Serial.println(ESP.getFlashChipSpeed());
+  Serial.print("Flash Size: ");
+  Serial.println(ESP.getFlashChipSize());
+
+  Serial.println("mounting FS...");
+
+  readConfig();
+  //myMqtt = MQTT(mqtt_server, mqtt_server, 1883);
+  //end read
+
+  // The extra parameters to be configured (can be either global or just in the setup)
+  // After connecting, parameter.getValue() will get you the configured value
+  // id/name placeholder/prompt default length
+  WiFiManagerParameter custom_mqtt_server("mqtt_server", "MQTT Server", mqtt_server, 40);
+  WiFiManagerParameter custom_mqtt_port("mqtt_port", "MQTT Port", mqtt_port, 8);
+  WiFiManagerParameter custom_mqtt_clientid("mqtt_clientid", "Client ID", mqtt_clientid, 64);
+
+  WiFiManager wifiManager;
+
+  // If BTN is held down when turned on, Reset Wifi Settings
+  if (digitalRead(BTN_pin) == LOW) {
+    Serial.println("BTN remained pressed... resetting Wifi");
+    wifiManager.resetSettings();
+  }
+
+  //set config save notify callback
+  wifiManager.setSaveConfigCallback(saveConfigCallback);
+
+  // id/name, placeholder/prompt, default, length
+  wifiManager.addParameter(&custom_mqtt_server);
+  wifiManager.addParameter(&custom_mqtt_port);
+  wifiManager.addParameter(&custom_mqtt_clientid);
+
+  if (! wifiManager.autoConnect("terraRGB")) {
+    Serial.println("failed to connect and hit timeout");
+    delay(3000);
+    //reset and try again, or maybe put it to deep sleep
+    ESP.reset();
+    delay(5000);
+  }
+
+  /*
   while (WiFi.status() != WL_CONNECTED) {
     delay(10);
     LED_step += 5;
@@ -62,6 +127,16 @@ void setup() {
       LED_step = 0;
     }
     SetLED(LED_step, LED_step, LED_step);
+  }*/
+
+  //read updated parameters
+  mqtt_server = custom_mqtt_server.getValue();
+  mqtt_port = custom_mqtt_port.getValue();
+  mqtt_clientid = custom_mqtt_clientid .getValue();
+
+  //save the custom parameters to FS
+  if (shouldSaveConfig) {
+    writeConfig();
   }
 
   Serial.println("");
@@ -91,6 +166,7 @@ void loop() {
     delay(50); //wait for bIsConnected to be set correctly!
     if (bIsConnected) {
       // Successfully connected to mosquitto Server
+      Serial.println("Successfull");
       SetLED(0, 255, 0);
       delay(200);
       SetLED(255, 255, 0);
@@ -101,6 +177,7 @@ void loop() {
     }
     else {
       // Connection failed
+      Serial.println("Connection to MQTT failed");
       SetLED(255, 0, 0);
       delay(200);
       SetLED(0, 0, 0);
@@ -113,9 +190,3 @@ void loop() {
 
   delay(1);
 }
-
-
-
-
-
-
