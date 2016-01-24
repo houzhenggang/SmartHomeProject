@@ -11,14 +11,6 @@ void updateLED() {
       flash();
       break;
   }
-
-
-}
-
-void LEDoutput() {
-  for (int i = 0; i < 3; i++) {
-    analogWrite(LED_pin[i], LED_out[i]);
-  }
 }
 
 void flash() {
@@ -31,22 +23,7 @@ void flash() {
   LEDoutput();
 }
 
-void dimm() {
-  for (int i = 0; i < 3; i++) {
-    if (LED_val[i] > LED_out[i])
-      LED_out[i] += 1;
-    else if (LED_val[i] < LED_out[i])
-      LED_out[i] -= 1;
-    else
-      LED_out[i] = LED_val[i];
-  }
-  LEDoutput();
-  LED_timer = millis();
-}
 
-void edge() {
-  SetLED(LED_val[0], LED_val[1], LED_val[2]);
-}
 
 void SetLED(byte r, byte g, byte b) {
   LED_out[0] = r;

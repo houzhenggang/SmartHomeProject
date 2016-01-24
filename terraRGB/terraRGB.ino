@@ -15,10 +15,12 @@
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
 
+#include <Bounce2.h>
+
 #include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager
 #include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
 
-#define CLIENT_ID "terraRGB"
+#define CLIENT_ID "Bett"
 #define DIMM 0
 #define INSTANT 1
 #define FLASH 2
@@ -51,15 +53,35 @@ boolean bIsConnected = false;
 
 byte LED_mode = DIMM;
 int LED_speed = 0;
-int LED_pin[] = {12, 14, 16};
+int LED_pin[] = {12, 14, 16, 5};
 int LED_step = 0;
 double LED_timer;
-byte LED_out[] = {0, 0, 0};
-byte LED_val[] = {0, 0, 0};
+byte LED_out[] = {0, 0, 0, 0};
+byte LED_val[] = {0, 0, 0, 0};
 
-int BTN_pin = 5;
 
-//
+
+// #### Switch / Button ####
+#define SWITCH_MODE_NORM  0
+#define SWITCH_MODE_MULTI 1
+#define SWITCH_MODE_PIR 2
+
+#define SWITCH_HOLDTIME 1000
+
+String mqtt_Buttons[0] = getPath("Button0");
+const byte switch_child_pins[] = {5};
+const byte switch_mode_pins[] = {SWITCH_MODE_MULTI};
+Bounce debouncer[ sizeof(switch_child_pins) ]; 
+boolean switch_oldValue[ sizeof(switch_child_pins) ];
+
+// #### MultiButton Variables #### 
+double switch_downtimer[ sizeof(switch_child_pins) ];
+double switch_endtimer[ sizeof(switch_child_pins) ];
+byte switch_multitab[ sizeof(switch_child_pins) ];
+
+//Button on this pin will reset the Wifi settings if hold when turned on
+int BTN_pin = (int) switch_child_pins[0];
+
 void setup() {
   pinMode(BTN_pin, INPUT_PULLUP);
   // Configure the RGB PWM Output
@@ -160,6 +182,7 @@ void loop() {
 
   if (bIsConnected) {
     updateLED();
+    Buttons();
   } else {
     // try to connect to mqtt server
     myMqtt.connect();
