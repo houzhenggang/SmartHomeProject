@@ -1,6 +1,8 @@
 void Buttons() {
   for (byte i = 0; i < sizeof(switch_child_pins); i++)
   {
+    Serial.print("Chek Btn ");
+    Serial.println(i);
     if (switch_mode_pins[i] == SWITCH_MODE_MULTI) {
       MultiButton(i);
     }
@@ -24,11 +26,10 @@ void MultiButton(int id) {
   byte value = debouncer[id].read();
   if (value != switch_oldValue[id])
   {
-
-
+    PrintDebug("[MultiButton] Change!", INFO);
     if (value == LOW) {
       //Button down, start Timer
-      //Serial.println("[MultiButton] HIT!");
+      PrintDebug("[MultiButton] HIT!", INFO);
       switch_downtimer[id] = millis();
       switch_endtimer[id] = millis() + SWITCH_HOLDTIME;
       switch_oldValue[id] = LOW;
@@ -36,7 +37,7 @@ void MultiButton(int id) {
     }
     else {
       //Button RELEASED
-      //Serial.println("[MultiButton] released");
+      PrintDebug("[MultiButton] released", INFO);
       switch_oldValue[id] = HIGH;
       if (switch_multitab[id] > 0) {
         switch_endtimer[id] = millis() + SWITCH_HOLDTIME / 2;

@@ -1,12 +1,15 @@
 void readConfig() {
+  Serial.print("[CONFIG] Mounting FileSystem");
   if (SPIFFS.begin()) {
-    Serial.println("mounted file system");
+    Serial.println(" --- DONE");
     if (SPIFFS.exists("/config.json")) {
       //file exists, reading and loading
-      Serial.println("reading config file");
+      Serial.print("[CONFIG] Opening config file");
       File configFile = SPIFFS.open("/config.json", "r");
       if (configFile) {
-        Serial.println("opened config file");
+        Serial.println(" --- DONE");
+        Serial.print("[CONFIG] Parsing Configuration");
+        
         size_t size = configFile.size();
         // Allocate a buffer to store contents of the file.
         std::unique_ptr<char[]> buf(new char[size]);
@@ -14,28 +17,30 @@ void readConfig() {
         configFile.readBytes(buf.get(), size);
         StaticJsonBuffer<200> jsonBuffer;
         JsonObject& json = jsonBuffer.parseObject(buf.get());
-        json.printTo(Serial);
+        //json.printTo(Serial);
+        
         if (json.success()) {
-          Serial.println("\nparsed json");
+          Serial.println(" --- DONE");
+          //Serial.println("\nparsed json");
 
           mqtt_server = json["mqtt_server"];
           mqtt_port = json["mqtt_port"];
           mqtt_clientid = json["mqtt_clientid"];
-          Serial.println(mqtt_server);
-          Serial.println(mqtt_port);
-          Serial.println(mqtt_clientid);
+          //Serial.println(mqtt_server);
+          //Serial.println(mqtt_port);
+          //Serial.println(mqtt_clientid);
         } else {
-          Serial.println("failed to load json config");
+          Serial.println(" --- FAILED!!!");
         }
       }
     }
   } else {
-    Serial.println("failed to mount FS");
+    Serial.println(" --- FAILED!!!");
   }
 }
 
 void writeConfig() {
-  Serial.println("saving config");
+  Serial.print("[CONFIG] Saving config");
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& json = jsonBuffer.createObject();
   json["mqtt_server"] = mqtt_server;
@@ -44,7 +49,7 @@ void writeConfig() {
 
   File configFile = SPIFFS.open("/config.json", "w");
   if (!configFile) {
-    Serial.println("failed to open config file for writing");
+    Serial.println(" --- FAILED to open config file for writing");
   }
 
   json.printTo(Serial);

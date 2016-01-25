@@ -49,17 +49,45 @@ void saveConfigCallback () {
   shouldSaveConfig = true;
 }
 
+//DEBUG values
+#define ADD -1
+#define INFO 10
+#define DEBUG 20
+#define SUCC 240
+#define ERR 250
+#define DEBUG_LEVEL 0
+
+void PrintDebug(String text, int level = DEBUG) {
+  if (level >= DEBUG_LEVEL) {
+
+    if (level != ADD) Serial.print("\n");
+
+    switch (level) {
+      case INFO:
+        Serial.print("[INFO] ");
+        break;
+      case DEBUG:
+        Serial.print("[DEBUG] ");
+        break;
+      case ERR:
+        Serial.print("[ERROR] ");
+        break;
+    }
+
+    Serial.print(text);
+  }
+}
 boolean bIsConnected = false;
 
 byte LED_mode = DIMM;
 int LED_speed = 0;
-int LED_pin[] = {12, 14, 16, 5};
+
+int LED_pin[] = {12, 14, 16, 10};
+String mqtt_LED[ sizeof(LED_pin) ];
 int LED_step = 0;
 double LED_timer;
 byte LED_out[] = {0, 0, 0, 0};
 byte LED_val[] = {0, 0, 0, 0};
-
-
 
 // #### Switch / Button ####
 #define SWITCH_MODE_NORM  0
@@ -68,13 +96,14 @@ byte LED_val[] = {0, 0, 0, 0};
 
 #define SWITCH_HOLDTIME 1000
 
-String mqtt_Buttons[0] = getPath("Button0");
+
 const byte switch_child_pins[] = {5};
 const byte switch_mode_pins[] = {SWITCH_MODE_MULTI};
-Bounce debouncer[ sizeof(switch_child_pins) ]; 
+String mqtt_Buttons[ sizeof(switch_child_pins) ];
+Bounce debouncer[ sizeof(switch_child_pins) ];
 boolean switch_oldValue[ sizeof(switch_child_pins) ];
 
-// #### MultiButton Variables #### 
+// #### MultiButton Variables ####
 double switch_downtimer[ sizeof(switch_child_pins) ];
 double switch_endtimer[ sizeof(switch_child_pins) ];
 byte switch_multitab[ sizeof(switch_child_pins) ];
@@ -83,17 +112,9 @@ byte switch_multitab[ sizeof(switch_child_pins) ];
 int BTN_pin = (int) switch_child_pins[0];
 
 void setup() {
-  pinMode(BTN_pin, INPUT_PULLUP);
-  // Configure the RGB PWM Output
-  for (int i = 0; i < 3; i++) {
-    pinMode(LED_pin[i], OUTPUT);
-  }
-  analogWriteRange(100);
-
   Serial.begin(115200);
   delay(1000);
-
-  Serial.println("Booting ESP8266");
+  Serial.println("[[[[[[[[[[ESP8266]]]]]]]]");
   Serial.print("ChipID: ");
   Serial.println(ESP.getChipId());
   Serial.print("FlashChipID: ");
@@ -102,8 +123,48 @@ void setup() {
   Serial.println(ESP.getFlashChipSpeed());
   Serial.print("Flash Size: ");
   Serial.println(ESP.getFlashChipSize());
+  Serial.println("[[[[[[[[[[[[[|]]]]]]]]]]]]]");
+  Serial.println();
+  Serial.println("terraRGB Version 0.0");
+  Serial.println();
 
-  Serial.println("mounting FS...");
+  Serial.print("[RGB] Configure PWM-Outputs (");
+  // Configure the RGB PWM Output
+  for (int i = 0; i < sizeof(LED_pin); i++) {
+    Serial.print(i);
+
+    //Create MQTT Path for LED Channel
+    String path = "LED";
+    path += String(i);
+    mqtt_LED[i] = getPath(path);
+  }
+  analogWriteRange(100);  //PWM Output-Range in percent!
+  Serial.println(") --- DONE");
+
+  //Configure and present all Switch Sensors
+  Serial.print("[Button] Configure Switches, Buttons and Inputs (");
+  for (int i = 0; i < sizeof(switch_child_pins); i++) {
+    Serial.print(i);
+    // Configure Input Pins with Internal Pullup Resistor!
+    pinMode(switch_child_pins[i], INPUT_PULLUP);
+    switch_oldValue[i] == HIGH;
+
+    //Diese Zeile ist für PIRS
+    if (switch_mode_pins[i] == SWITCH_MODE_PIR) {
+      pinMode(switch_child_pins[i], INPUT);
+    }
+
+    //Create MQTT Path for Button Channel
+    String path = "Button";
+    path += String(i);
+    mqtt_Buttons[i] = getPath(path);
+
+    // After setting up the button, setup debouncer
+    debouncer[i].attach(switch_child_pins[i]);
+    debouncer[i].interval(5);
+  }
+  Serial.println(") --- DONE");
+
 
   readConfig();
   //myMqtt = MQTT(mqtt_server, mqtt_server, 1883);
@@ -162,11 +223,10 @@ void setup() {
   }
 
   Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  PrintDebug("[WiFi] connected", SUCC);
+  PrintDebug("[WiFi] IP address:", SUCC);
+  PrintDebug(String(WiFi.localIP()), ADD);
 
-  Serial.println("Connecting to MQTT server");
 
   // setup MQTT Callback Functions
   myMqtt.onConnected(myConnectedCb);
@@ -182,14 +242,17 @@ void loop() {
 
   if (bIsConnected) {
     updateLED();
-    Buttons();
+    //Buttons();
+
   } else {
+    
     // try to connect to mqtt server
+    PrintDebug("[MQTT] Trying to connect to server", INFO);
     myMqtt.connect();
     delay(50); //wait for bIsConnected to be set correctly!
+
     if (bIsConnected) {
       // Successfully connected to mosquitto Server
-      Serial.println("Successfull");
       SetLED(0, 255, 0);
       delay(200);
       SetLED(255, 255, 0);
@@ -200,7 +263,7 @@ void loop() {
     }
     else {
       // Connection failed
-      Serial.println("Connection to MQTT failed");
+      PrintDebug(" --- FAILED", ADD);
       SetLED(255, 0, 0);
       delay(200);
       SetLED(0, 0, 0);
