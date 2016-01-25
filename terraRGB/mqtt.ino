@@ -6,8 +6,16 @@ String mqtt_B = getPath("B");
 String mqtt_L = getPath("TobyLamp");
 
 void myConnectedCb() {
-  PrintDebug("--- DONE", ADD);
+  PrintDebug("--- CONNECTED", ADD);
   PrintDebug("[MQTT] Start subscribing:", INFO);
+
+  PrintDebug("->", INFO);
+  PrintDebug(mqtt_mode, ADD);
+  myMqtt.subscribe(mqtt_mode);
+
+  PrintDebug("->", INFO);
+  PrintDebug(mqtt_speed, ADD);
+  myMqtt.subscribe(mqtt_speed);
 
   //Subscribe LED Channels
   for (int i = 0; i < sizeof(LED_pin); i++) {
@@ -15,13 +23,8 @@ void myConnectedCb() {
     PrintDebug(mqtt_LED[i], ADD);
     myMqtt.subscribe(mqtt_LED[i]);
   }
-  
-  myMqtt.subscribe(mqtt_mode);
-  myMqtt.subscribe(mqtt_speed);
-  myMqtt.subscribe(mqtt_R);
-  myMqtt.subscribe(mqtt_G);
-  myMqtt.subscribe(mqtt_B);
-  myMqtt.subscribe(mqtt_L);
+
+
   bIsConnected = true;
 }
 
@@ -42,7 +45,7 @@ void myDataCb(String& topic, String& data) {
 
   //Wandle Datenwert in Integer um. openhab Dimmerwerte liegen zwischen 0-100
   int val = data.toInt();
-  
+
   if (topic == mqtt_mode)
     LED_mode = val;
   if (topic == mqtt_speed)

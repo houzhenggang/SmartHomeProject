@@ -57,11 +57,13 @@ void saveConfigCallback () {
 #define ERR 250
 #define DEBUG_LEVEL 0
 
+boolean debug_omitfollowing = false;
+
 void PrintDebug(String text, int level = DEBUG) {
+
   if (level >= DEBUG_LEVEL) {
-
-    if (level != ADD) Serial.print("\n");
-
+    debug_omitfollowing = false;
+    Serial.print("\n");
     switch (level) {
       case INFO:
         Serial.print("[INFO] ");
@@ -73,29 +75,34 @@ void PrintDebug(String text, int level = DEBUG) {
         Serial.print("[ERROR] ");
         break;
     }
+  }
+  else if (level != ADD)
+    debug_omitfollowing = true;
 
+  if (!debug_omitfollowing) {
     Serial.print(text);
   }
 }
 boolean bIsConnected = false;
 
+
+// ############ LED / PWM Outputs ############
 byte LED_mode = DIMM;
 int LED_speed = 0;
 
-int LED_pin[] = {12, 14, 16, 10};
+byte LED_pin[] = {12, 14, 16, 10};
 String mqtt_LED[ sizeof(LED_pin) ];
 int LED_step = 0;
 double LED_timer;
 byte LED_out[] = {0, 0, 0, 0};
 byte LED_val[] = {0, 0, 0, 0};
 
-// #### Switch / Button ####
+// ############ Switch / Button ############
 #define SWITCH_MODE_NORM  0
 #define SWITCH_MODE_MULTI 1
 #define SWITCH_MODE_PIR 2
 
 #define SWITCH_HOLDTIME 1000
-
 
 const byte switch_child_pins[] = {5};
 const byte switch_mode_pins[] = {SWITCH_MODE_MULTI};
@@ -245,7 +252,7 @@ void loop() {
     //Buttons();
 
   } else {
-    
+
     // try to connect to mqtt server
     PrintDebug("[MQTT] Trying to connect to server", INFO);
     myMqtt.connect();
