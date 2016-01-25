@@ -232,7 +232,7 @@ void setup() {
   Serial.println("");
   PrintDebug("[WiFi] connected", SUCC);
   PrintDebug("[WiFi] IP address:", SUCC);
-  PrintDebug(String(WiFi.localIP()), ADD);
+  Serial.print(WiFi.localIP()); //printDebug would print IP as Integer!
 
 
   // setup MQTT Callback Functions
