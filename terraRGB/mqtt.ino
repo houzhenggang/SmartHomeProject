@@ -39,9 +39,10 @@ void myPublishedCb() {
 
 // Called when Data is received from MQTT Server
 void myDataCb(String& topic, String& data) {
-  Serial.print(topic);
-  Serial.print(": ");
-  Serial.println(data);
+  PrintDebug("[MQTT]", INFO);
+  PrintDebug(topic, ADD);
+  PrintDebug(":", ADD);
+  PrintDebug(data, ADD);
 
   //Wandle Datenwert in Integer um. openhab Dimmerwerte liegen zwischen 0-100
   int val = data.toInt();
@@ -51,16 +52,8 @@ void myDataCb(String& topic, String& data) {
   if (topic == mqtt_speed)
     LED_speed = val;
   else {
-    Serial.println(val);
-
-    if (topic == mqtt_R)
-      LED_val[0] = val;
-    else if (topic == mqtt_G)
-      LED_val[1] = val;
-    else if (topic == mqtt_B)
-      LED_val[2] = val;
-    else if (topic == mqtt_L)
-      LED_val[3] = val;
+    if (LEDreadMQTT(topic, val))
+      PrintDebug("-> LED matched topic", SUCC);
     else
       PrintDebug("Incoming Data not recognized!", ERR);
   }

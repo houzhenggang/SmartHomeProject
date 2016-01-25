@@ -22,3 +22,14 @@ void edge() {
     LED_out[i] = LED_val[i];
   }
 }
+
+boolean LEDreadMQTT(String topic, int val){
+  boolean result = false;
+  for (int i = 0; i < sizeof(LED_pin); i++) {
+    if(topic == mqtt_LED[i]){
+      LED_val[i] = val;
+      result = true;
+    }
+  }
+  return result;
+}
