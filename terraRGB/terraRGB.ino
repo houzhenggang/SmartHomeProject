@@ -20,7 +20,7 @@
 #include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager
 #include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
 
-#define CLIENT_ID "Bett"
+#define CLIENT_ID "BettESP"
 #define DIMM 0
 #define INSTANT 1
 #define FLASH 2
@@ -34,6 +34,11 @@
 const char *mqtt_server = "test.mosquitto.net";
 const char *mqtt_port = "1883";
 const char *mqtt_clientid = "ESPtest";
+
+WiFiManagerParameter custom_mqtt_server("mqtt_server", "MQTT Server", mqtt_server, 40);
+WiFiManagerParameter custom_mqtt_port("mqtt_port", "MQTT Port", mqtt_port, 8);
+WiFiManagerParameter custom_mqtt_clientid("mqtt_clientid", "Client ID", mqtt_clientid, 64);
+
 
 // create MQTT object
 //MQTT myMqtt(mqtt_server, mqtt_server, 1883);
@@ -174,15 +179,11 @@ void setup() {
 
 
   readConfig();
-  //myMqtt = MQTT(mqtt_server, mqtt_server, 1883);
   //end read
 
   // The extra parameters to be configured (can be either global or just in the setup)
   // After connecting, parameter.getValue() will get you the configured value
   // id/name placeholder/prompt default length
-  WiFiManagerParameter custom_mqtt_server("mqtt_server", "MQTT Server", mqtt_server, 40);
-  WiFiManagerParameter custom_mqtt_port("mqtt_port", "MQTT Port", mqtt_port, 8);
-  WiFiManagerParameter custom_mqtt_clientid("mqtt_clientid", "Client ID", mqtt_clientid, 64);
 
   WiFiManager wifiManager;
 
@@ -222,20 +223,21 @@ void setup() {
   //read updated parameters
   mqtt_server = custom_mqtt_server.getValue();
   mqtt_port = custom_mqtt_port.getValue();
-  mqtt_clientid = custom_mqtt_clientid .getValue();
+  mqtt_clientid = custom_mqtt_clientid.getValue();
 
   //save the custom parameters to FS
   if (shouldSaveConfig) {
     writeConfig();
   }
 
-  Serial.println("");
+  PrintDebug("", SUCC);
   PrintDebug("[WiFi] connected", SUCC);
-  PrintDebug("[WiFi] IP address:", SUCC);
+  PrintDebug("[WiFi] IP address: ", SUCC);
   Serial.print(WiFi.localIP()); //printDebug would print IP as Integer!
 
 
   // setup MQTT Callback Functions
+  myMqtt = MQTT(mqtt_clientid, mqtt_server, 1883);
   myMqtt.onConnected(myConnectedCb);
   myMqtt.onDisconnected(myDisconnectedCb);
   myMqtt.onPublished(myPublishedCb);
