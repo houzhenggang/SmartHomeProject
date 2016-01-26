@@ -61,7 +61,7 @@ void myDataCb(String& topic, String& data) {
 
 String getPath(String actor) {
   String path = "";
-  path += CLIENT_ID;
+  path += mqtt_clientid;
   path += "/" + actor;
   return path;
 }

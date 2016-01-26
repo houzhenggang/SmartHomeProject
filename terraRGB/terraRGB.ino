@@ -20,7 +20,6 @@
 #include <WiFiManager.h>          //https://github.com/tzapu/WiFiManager
 #include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
 
-#define CLIENT_ID "BettESP"
 #define DIMM 0
 #define INSTANT 1
 #define FLASH 2
@@ -31,9 +30,10 @@
 
 
 // Standard values for the MQTT config mode
+const char *mqtt_clientid = "terraRGB";
 const char *mqtt_server = "test.mosquitto.net";
 const char *mqtt_port = "1883";
-const char *mqtt_clientid = "ESPtest";
+
 
 WiFiManagerParameter custom_mqtt_server("mqtt_server", "MQTT Server", mqtt_server, 40);
 WiFiManagerParameter custom_mqtt_port("mqtt_port", "MQTT Port", mqtt_port, 8);
@@ -41,8 +41,7 @@ WiFiManagerParameter custom_mqtt_clientid("mqtt_clientid", "Client ID", mqtt_cli
 
 
 // create MQTT object
-//MQTT myMqtt(mqtt_server, mqtt_server, 1883);
-MQTT myMqtt(CLIENT_ID, "192.168.4.4", 1883);
+MQTT myMqtt(mqtt_clientid, mqtt_server, int(mqtt_port) );
 
 
 //flag for saving data
