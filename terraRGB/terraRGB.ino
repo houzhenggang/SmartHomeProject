@@ -34,12 +34,6 @@ const char *mqtt_clientid = "terraRGB";
 const char *mqtt_server = "test.mosquitto.net";
 const char *mqtt_port = "1883";
 
-
-WiFiManagerParameter custom_mqtt_server("mqtt_server", "MQTT Server", mqtt_server, 40);
-WiFiManagerParameter custom_mqtt_port("mqtt_port", "MQTT Port", mqtt_port, 8);
-WiFiManagerParameter custom_mqtt_clientid("mqtt_clientid", "Client ID", mqtt_clientid, 64);
-
-
 // create MQTT object
 MQTT myMqtt(mqtt_clientid, mqtt_server, int(mqtt_port) );
 
@@ -180,17 +174,16 @@ void setup() {
   readConfig();
   //end read
 
+  // Create Parameters
+  WiFiManagerParameter custom_mqtt_server("mqtt_server", "MQTT Server", mqtt_server, 40);
+  WiFiManagerParameter custom_mqtt_port("mqtt_port", "MQTT Port", mqtt_port, 8);
+  WiFiManagerParameter custom_mqtt_clientid("mqtt_clientid", "Client ID", mqtt_clientid, 64);
+
   // The extra parameters to be configured (can be either global or just in the setup)
   // After connecting, parameter.getValue() will get you the configured value
   // id/name placeholder/prompt default length
 
   WiFiManager wifiManager;
-
-  // If BTN is held down when turned on, Reset Wifi Settings
-  if (digitalRead(BTN_pin) == LOW) {
-    Serial.println("BTN remained pressed... resetting Wifi");
-    wifiManager.resetSettings();
-  }
 
   //set config save notify callback
   wifiManager.setSaveConfigCallback(saveConfigCallback);
@@ -199,6 +192,12 @@ void setup() {
   wifiManager.addParameter(&custom_mqtt_server);
   wifiManager.addParameter(&custom_mqtt_port);
   wifiManager.addParameter(&custom_mqtt_clientid);
+
+  // If BTN is held down when turned on, Reset Wifi Settings
+  if (digitalRead(BTN_pin) == LOW) {
+    Serial.println("BTN remained pressed... resetting Wifi");
+    wifiManager.resetSettings();
+  }
 
   if (! wifiManager.autoConnect("terraRGB")) {
     Serial.println("failed to connect and hit timeout");
@@ -229,18 +228,17 @@ void setup() {
     writeConfig();
   }
 
-  PrintDebug("", SUCC);
-  PrintDebug("[WiFi] connected", SUCC);
-  PrintDebug("[WiFi] IP address: ", SUCC);
-  Serial.print(WiFi.localIP()); //printDebug would print IP as Integer!
-
-
   // setup MQTT Callback Functions
   myMqtt = MQTT(mqtt_clientid, mqtt_server, 1883);
   myMqtt.onConnected(myConnectedCb);
   myMqtt.onDisconnected(myDisconnectedCb);
   myMqtt.onPublished(myPublishedCb);
   myMqtt.onData(myDataCb);
+
+  PrintDebug("", SUCC);
+  PrintDebug("[WiFi] connected", SUCC);
+  PrintDebug("[WiFi] IP address: ", SUCC);
+  Serial.print(WiFi.localIP()); //printDebug would print IP as Integer!
 
   delay(10);
 }
@@ -255,7 +253,13 @@ void loop() {
   } else {
 
     // try to connect to mqtt server
-    PrintDebug("[MQTT] Trying to connect to server", INFO);
+    PrintDebug("[MQTT] Trying to connect to ", INFO);
+    PrintDebug(mqtt_server, ADD);
+    PrintDebug(":", ADD);
+    PrintDebug(mqtt_port, ADD);
+    PrintDebug("as", ADD);
+    PrintDebug(mqtt_clientid, ADD);
+    
     myMqtt.connect();
     delay(50); //wait for bIsConnected to be set correctly!
 
@@ -279,6 +283,7 @@ void loop() {
       SetLED(255, 0, 0);
       delay(500);
       SetLED(0, 0, 0);
+      delay(2000);
     }
   }
 
