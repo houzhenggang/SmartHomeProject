@@ -1,17 +1,17 @@
 void Buttons() {
   for (byte i = 0; i < sizeof(switch_child_pins); i++)
   {
-    Serial.print("Chek Btn ");
-    Serial.println(i);
     if (switch_mode_pins[i] == SWITCH_MODE_MULTI) {
       MultiButton(i);
     }
     else {
+
       debouncer[i].update();
       byte value = debouncer[i].read();
       if (value != switch_oldValue[i])
       {
-        Serial.println("Button toggled!");
+        PrintDebug("[Button] Toggled", INFO);
+        PrintDebug(String(i), ADD);
         String valueStr(0);
         myMqtt.publish(mqtt_Buttons[i], valueStr);
         //myMqtt.publish(mqtt_Buttons[i], value == HIGH ? "1" : "0");
@@ -26,10 +26,9 @@ void MultiButton(int id) {
   byte value = debouncer[id].read();
   if (value != switch_oldValue[id])
   {
-    PrintDebug("[MultiButton] Change!", INFO);
     if (value == LOW) {
       //Button down, start Timer
-      PrintDebug("[MultiButton] HIT!", INFO);
+      PrintDebug("[MultiButton] HIT!", DEBUG);
       switch_downtimer[id] = millis();
       switch_endtimer[id] = millis() + SWITCH_HOLDTIME;
       switch_oldValue[id] = LOW;
@@ -37,7 +36,7 @@ void MultiButton(int id) {
     }
     else {
       //Button RELEASED
-      PrintDebug("[MultiButton] released", INFO);
+      PrintDebug("[MultiButton] released", DEBUG);
       switch_oldValue[id] = HIGH;
       if (switch_multitab[id] > 0) {
         switch_endtimer[id] = millis() + SWITCH_HOLDTIME / 2;
@@ -46,7 +45,8 @@ void MultiButton(int id) {
   }
   else {
     if (switch_endtimer[id] < millis() && value == LOW && switch_multitab[id] == 1) {
-      MultiButtonDebug(id, " HOLD");
+      PrintDebug("[MultiButton] Holding Button", DEBUG);
+      PrintDebug(String(id), ADD);
       String valueStr(-1);
       myMqtt.publish(mqtt_Buttons[id], valueStr);
       switch_downtimer[id] = 0;
@@ -54,7 +54,8 @@ void MultiButton(int id) {
       switch_multitab[id] = 0;
     }
     else if (switch_endtimer[id] < millis() && switch_multitab[id] >= 1) {
-      MultiButtonDebug(id, String(switch_multitab[id]) + String(" TAPS"));
+      PrintDebug("[MultiButton] Btn" + String(id) + " " + String(switch_multitab[id]) + String(" TAPS"), DEBUG);
+
       String valueStr(switch_multitab[id]);
       myMqtt.publish(mqtt_Buttons[id], valueStr);
       switch_downtimer[id] = 0;
@@ -62,14 +63,4 @@ void MultiButton(int id) {
       switch_multitab[id] = 0;
     }
   }
-}
-
-void MultiButtonDebug(int id, String text) {
-  Serial.print("[MultiButton] ");
-  if (id != 0)
-  {
-    Serial.print("Btn# ");
-    Serial.print(id);
-  }
-  Serial.println(text);
 }
