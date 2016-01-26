@@ -1,9 +1,5 @@
-String mqtt_mode = getPath("mode");
-String mqtt_speed = getPath("speed");
-String mqtt_R = getPath("R");
-String mqtt_G = getPath("G");
-String mqtt_B = getPath("B");
-String mqtt_L = getPath("TobyLamp");
+String mqtt_mode = MQTTgetPath("mode");
+String mqtt_speed = MQTTgetPath("speed");
 
 void myConnectedCb() {
   PrintDebug("--- CONNECTED", ADD);
@@ -24,7 +20,6 @@ void myConnectedCb() {
     myMqtt.subscribe(mqtt_LED[i]);
   }
 
-
   bIsConnected = true;
 }
 
@@ -39,9 +34,9 @@ void myPublishedCb() {
 
 // Called when Data is received from MQTT Server
 void myDataCb(String& topic, String& data) {
-  PrintDebug("[MQTT]", INFO);
+  PrintDebug("[MQTT] << ", INFO);
   PrintDebug(topic, ADD);
-  PrintDebug(":", ADD);
+  PrintDebug("=", ADD);
   PrintDebug(data, ADD);
 
   //Wandle Datenwert in Integer um. openhab Dimmerwerte liegen zwischen 0-100
@@ -53,13 +48,22 @@ void myDataCb(String& topic, String& data) {
     LED_speed = val;
   else {
     if (LEDreadMQTT(topic, val))
-      PrintDebug("-> LED matched topic", SUCC);
+      PrintDebug("-> LED matched topic", DEBUG);
     else
       PrintDebug("Incoming Data not recognized!", ERR);
   }
 }
 
-String getPath(String actor) {
+void MQTTpublish(String topic, String data) {
+  PrintDebug("[MQTT] >> ", INFO);
+  PrintDebug(topic, ADD);
+  PrintDebug("=", ADD);
+  PrintDebug(data, ADD);
+
+  if(!myMqtt.publish(topic, data)) PrintDebug("Could not been sent!", ERR);
+}
+
+String MQTTgetPath(String actor) {
   String path = "";
   path += mqtt_clientid;
   path += "/" + actor;

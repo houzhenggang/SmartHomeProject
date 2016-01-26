@@ -47,8 +47,10 @@ void MultiButton(int id) {
     if (switch_endtimer[id] < millis() && value == LOW && switch_multitab[id] == 1) {
       PrintDebug("[MultiButton] Holding Button", DEBUG);
       PrintDebug(String(id), ADD);
+      
       String valueStr(-1);
-      myMqtt.publish(mqtt_Buttons[id], valueStr);
+      MQTTpublish(mqtt_Buttons[id], valueStr);
+      
       switch_downtimer[id] = 0;
       switch_endtimer[id] = 0;
       switch_multitab[id] = 0;
@@ -57,7 +59,8 @@ void MultiButton(int id) {
       PrintDebug("[MultiButton] Btn" + String(id) + " " + String(switch_multitab[id]) + String(" TAPS"), DEBUG);
 
       String valueStr(switch_multitab[id]);
-      myMqtt.publish(mqtt_Buttons[id], valueStr);
+      MQTTpublish(mqtt_Buttons[id], valueStr);
+      
       switch_downtimer[id] = 0;
       switch_endtimer[id] = 0;
       switch_multitab[id] = 0;
