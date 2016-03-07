@@ -35,7 +35,7 @@ const char *mqtt_server = "test.mosquitto.net";
 const char *mqtt_port = "1883";
 
 // create MQTT object
-MQTT myMqtt(mqtt_clientid, mqtt_server, int(mqtt_port) );
+MQTT myMqtt(mqtt_clientid, "test.mosquitto.net", 1883);
 
 
 //flag for saving data
@@ -88,12 +88,12 @@ boolean bIsConnected = false;
 byte LED_mode = DIMM;
 int LED_speed = 0;
 
-byte LED_pin[] = {12, 14, 16, 10};
+byte LED_pin[] = {15,13,12,14,4};   // The 5 GPIOS where the Mosfets of the H801 are connected to
 String mqtt_LED[ sizeof(LED_pin) ];
 int LED_step = 0;
 double LED_timer;
-byte LED_out[] = {0, 0, 0, 0};
-byte LED_val[] = {0, 0, 0, 0};
+byte LED_out[] = {0, 0, 0, 0, 0};
+byte LED_val[] = {0, 0, 0, 0, 0};
 
 // ############ Switch / Button ############
 #define SWITCH_MODE_NORM  0
@@ -102,8 +102,8 @@ byte LED_val[] = {0, 0, 0, 0};
 
 #define SWITCH_HOLDTIME 1000
 
-const byte switch_child_pins[] = {5};
-const byte switch_mode_pins[] = {SWITCH_MODE_MULTI};
+const byte switch_child_pins[] = {};
+const byte switch_mode_pins[] = {};
 String mqtt_Buttons[ sizeof(switch_child_pins) ];
 Bounce debouncer[ sizeof(switch_child_pins) ];
 boolean switch_oldValue[ sizeof(switch_child_pins) ];
@@ -113,8 +113,8 @@ double switch_downtimer[ sizeof(switch_child_pins) ];
 double switch_endtimer[ sizeof(switch_child_pins) ];
 byte switch_multitab[ sizeof(switch_child_pins) ];
 
-//Button on this pin will reset the Wifi settings if hold when turned on
-int BTN_pin = (int) switch_child_pins[0];
+//Button on this pin will reset the Wifi settings if hold when turned on (-1 = no Reset Button!)
+int BTN_pin = -1; //(int) switch_child_pins[0];
 
 void setup() {
   Serial.begin(115200);
@@ -130,26 +130,31 @@ void setup() {
   Serial.println(ESP.getFlashChipSize());
   Serial.println("[[[[[[[[[[[[[|]]]]]]]]]]]]]");
   Serial.println();
-  Serial.println("terraRGB Version 0.0");
+  Serial.println("terraRGB Version 0.1");
   Serial.println();
 
-  Serial.print("[RGB] Configure PWM-Outputs (");
+  PrintDebug("[RGB] Configure PWM-Outputs (", SUCC);
   // Configure the RGB PWM Output
+  analogWriteRange(100);  //PWM Output-Range in percent!
+
   for (int i = 0; i < sizeof(LED_pin); i++) {
-    Serial.print(i);
+    PrintDebug((String) i, ADD);
 
     //Create MQTT Path for LED Channel
     String path = "LED";
     path += String(i);
     mqtt_LED[i] = getPath(path);
+
+    //Set Output mode and all Outputs Off!
+    pinMode(LED_pin[i], OUTPUT);
+    analogWrite(LED_pin[i], 0);
   }
-  analogWriteRange(100);  //PWM Output-Range in percent!
-  Serial.println(") --- DONE");
+  PrintDebug(") --- DONE", ADD);
 
   //Configure and present all Switch Sensors
-  Serial.print("[Button] Configure Switches, Buttons and Inputs (");
+  PrintDebug("[Button] Configure Switches, Buttons and Inputs (", SUCC);
   for (int i = 0; i < sizeof(switch_child_pins); i++) {
-    Serial.print(i);
+    PrintDebug((String) i, ADD);
     // Configure Input Pins with Internal Pullup Resistor!
     pinMode(switch_child_pins[i], INPUT_PULLUP);
     switch_oldValue[i] == HIGH;
@@ -168,7 +173,7 @@ void setup() {
     debouncer[i].attach(switch_child_pins[i]);
     debouncer[i].interval(5);
   }
-  Serial.println(") --- DONE");
+  PrintDebug(") --- DONE", ADD);
 
 
   readConfig();
@@ -194,7 +199,7 @@ void setup() {
   wifiManager.addParameter(&custom_mqtt_clientid);
 
   // If BTN is held down when turned on, Reset Wifi Settings
-  if (digitalRead(BTN_pin) == LOW) {
+  if (BTN_pin != -1 && digitalRead(BTN_pin) == LOW) {
     Serial.println("BTN remained pressed... resetting Wifi");
     wifiManager.resetSettings();
   }
@@ -207,17 +212,6 @@ void setup() {
     delay(5000);
   }
 
-  /*
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(10);
-    LED_step += 5;
-    if (LED_step >= 255) {
-      Serial.print(".");
-      LED_step = 0;
-    }
-    SetLED(LED_step, LED_step, LED_step);
-  }*/
-
   //read updated parameters
   mqtt_server = custom_mqtt_server.getValue();
   mqtt_port = custom_mqtt_port.getValue();
@@ -229,7 +223,7 @@ void setup() {
   }
 
   // setup MQTT Callback Functions
-  myMqtt = MQTT(mqtt_clientid, mqtt_server, 1883);
+  //myMqtt = MQTT(mqtt_clientid, mqtt_server, 1883);
   myMqtt.onConnected(myConnectedCb);
   myMqtt.onDisconnected(myDisconnectedCb);
   myMqtt.onPublished(myPublishedCb);
@@ -238,7 +232,7 @@ void setup() {
   PrintDebug("", SUCC);
   PrintDebug("[WiFi] connected", SUCC);
   PrintDebug("[WiFi] IP address: ", SUCC);
-  Serial.print(WiFi.localIP()); //printDebug would print IP as Integer!
+  PrintDebug((String) WiFi.localIP(), SUCC); //printDebug would print IP as Integer!
 
   delay(10);
 }
@@ -259,7 +253,7 @@ void loop() {
     PrintDebug(mqtt_port, ADD);
     PrintDebug("as", ADD);
     PrintDebug(mqtt_clientid, ADD);
-    
+
     myMqtt.connect();
     delay(50); //wait for bIsConnected to be set correctly!
 
@@ -274,12 +268,13 @@ void loop() {
       SetLED(0, 0, 0);
     }
     else {
-      // Connection failed
-      PrintDebug(" --- FAILED", ADD);
+      // Connection failed (Debug Message )
+      PrintDebug(" ---", ADD);
       SetLED(255, 0, 0);
       delay(200);
       SetLED(0, 0, 0);
       delay(200);
+      PrintDebug(" FAILED", ADD);
       SetLED(255, 0, 0);
       delay(500);
       SetLED(0, 0, 0);
