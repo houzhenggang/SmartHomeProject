@@ -143,7 +143,7 @@ void setup() {
     //Create MQTT Path for LED Channel
     String path = "LED";
     path += String(i);
-    mqtt_LED[i] = getPath(path);
+    mqtt_LED[i] = MQTTgetPath(path);
 
     //Set Output mode and all Outputs Off!
     pinMode(LED_pin[i], OUTPUT);
@@ -167,7 +167,7 @@ void setup() {
     //Create MQTT Path for Button Channel
     String path = "Button";
     path += String(i);
-    mqtt_Buttons[i] = getPath(path);
+    mqtt_Buttons[i] = MQTTgetPath(path);
 
     // After setting up the button, setup debouncer
     debouncer[i].attach(switch_child_pins[i]);
